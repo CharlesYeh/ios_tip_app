@@ -17,18 +17,14 @@ class ViewController: UIViewController {
     @IBOutlet weak var totalLabel: UILabel!
     @IBOutlet weak var outputView: UIView!
     
-    let TEN_MIN_SEC = 5
+    let TEN_MIN_SEC =  60 * 10
     let ANIMATION_DELAY = 0.2
     let PERCENTAGES = [0.18, 0.2, 0.22]
     
     override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: "appCameToForeground:", name:UIApplicationWillEnterForegroundNotification, object: nil)
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: "appSentToBackground:", name:UIApplicationWillResignActiveNotification, object: nil)
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -36,6 +32,40 @@ class ViewController: UIViewController {
         
         let defaults = NSUserDefaults.standardUserDefaults()
         tipPercentageControl.selectedSegmentIndex = defaults.integerForKey(UserDefaultKeys.DEFAULT_TIP_INDEX)
+        
+        billField.becomeFirstResponder()
+        updateUI()
+    }
+    
+    @IBAction func onEditingChanged(sender: AnyObject) {
+        updateUI()
+    }
+    
+    @IBAction func onTap(sender: UITapGestureRecognizer) {
+        view.endEditing(true)
+    }
+    
+    func appCameToForeground(notification: NSNotification) {
+        loadBillAmount()
+    }
+    
+    func appSentToBackground(notification: NSNotification) {
+        saveBillAmount()
+        billField.text = ""
+    }
+    
+    func saveBillAmount() {
+        // Saves current bill amount for later loading.
+        let defaults = NSUserDefaults.standardUserDefaults()
+        
+        defaults.setValue(billField.text, forKey: UserDefaultKeys.LAST_BILL_AMOUNT)
+        defaults.setObject(NSDate(), forKey: UserDefaultKeys.SAVED_BILL_DATE)
+        defaults.synchronize()
+    }
+    
+    func loadBillAmount() {
+        // Loads previous bill amount, but defaults to "" if it was saved >10 min ago.
+        let defaults = NSUserDefaults.standardUserDefaults()
         
         let oldDate: NSDate? = defaults.objectForKey(UserDefaultKeys.SAVED_BILL_DATE) as! NSDate?
         if var date = oldDate {
@@ -48,32 +78,19 @@ class ViewController: UIViewController {
             }
         }
         
-        billField.becomeFirstResponder()
-        updateUI()
-    }
-    
-    override func viewDidDisappear(animated: Bool) {
-        super.viewDidDisappear(animated)
-        
-        let defaults = NSUserDefaults.standardUserDefaults()
-        defaults.setValue(billField.text, forKey: UserDefaultKeys.LAST_BILL_AMOUNT)
-        defaults.setObject(NSDate(), forKey: UserDefaultKeys.SAVED_BILL_DATE)
-        defaults.synchronize()
-    }
-    
-    @IBAction func onEditingChanged(sender: AnyObject) {
         updateUI()
     }
     
     func updateUI() {
-        
         if billField.text == "" {
+            // hide tip / total
             UIView.animateWithDuration(ANIMATION_DELAY, animations: {
                 self.outputView.alpha = 0
             })
             return
         }
         
+        // populate tip / total labels
         UIView.animateWithDuration(ANIMATION_DELAY, animations: {
             self.outputView.alpha = 1
         })
@@ -89,10 +106,5 @@ class ViewController: UIViewController {
         tipLabel.text = formatter.stringFromNumber(tip)
         totalLabel.text = formatter.stringFromNumber(bill + tip)
     }
-    
-    @IBAction func onTap(sender: UITapGestureRecognizer) {
-        view.endEditing(true)
-    }
-    
 }
 
