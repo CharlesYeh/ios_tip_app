@@ -23,8 +23,9 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         NSNotificationCenter.defaultCenter().addObserver(self, selector: "appCameToForeground:", name:UIApplicationWillEnterForegroundNotification, object: nil)
-        
         NSNotificationCenter.defaultCenter().addObserver(self, selector: "appSentToBackground:", name:UIApplicationWillResignActiveNotification, object: nil)
+        
+        loadBillAmount()
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -51,13 +52,11 @@ class ViewController: UIViewController {
     
     func appSentToBackground(notification: NSNotification) {
         saveBillAmount()
-        billField.text = ""
     }
     
     func saveBillAmount() {
         // Saves current bill amount for later loading.
         let defaults = NSUserDefaults.standardUserDefaults()
-        
         defaults.setValue(billField.text, forKey: UserDefaultKeys.LAST_BILL_AMOUNT)
         defaults.setObject(NSDate(), forKey: UserDefaultKeys.SAVED_BILL_DATE)
         defaults.synchronize()
@@ -66,8 +65,8 @@ class ViewController: UIViewController {
     func loadBillAmount() {
         // Loads previous bill amount, but defaults to "" if it was saved >10 min ago.
         let defaults = NSUserDefaults.standardUserDefaults()
-        
         let oldDate: NSDate? = defaults.objectForKey(UserDefaultKeys.SAVED_BILL_DATE) as! NSDate?
+        
         if var date = oldDate {
             date = date.dateByAddingTimeInterval(NSTimeInterval(TEN_MIN_SEC))
             if date.compare(NSDate()) == .OrderedAscending {
